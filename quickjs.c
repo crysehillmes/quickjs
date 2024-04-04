@@ -2187,6 +2187,16 @@ JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id)
     return js_dup(ctx->class_proto[class_id]);
 }
 
+JS_BOOL JS_IsStrictEqual(JSContext *ctx, JSValue op1, JSValue op2)
+{
+    return js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);
+}
+
+JS_BOOL JS_IsSameValue(JSContext *ctx, JSValue op1, JSValue op2)
+{
+    return js_strict_eq2(ctx, op1, op2, JS_EQ_SAME_VALUE);
+}
+
 typedef enum JSFreeModuleEnum {
     JS_FREE_MODULE_ALL,
     JS_FREE_MODULE_NOT_RESOLVED,

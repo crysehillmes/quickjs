@@ -318,6 +318,9 @@ JS_EXTERN JSRuntime *JS_GetRuntime(JSContext *ctx);
 JS_EXTERN void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj);
 JS_EXTERN JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id);
 
+JS_EXTERN JS_BOOL JS_IsStrictEqual(JSContext *ctx, JSValue op1, JSValue op2);
+JS_EXTERN JS_BOOL JS_IsSameValue(JSContext *ctx, JSValue op1, JSValue op2);
+
 /* the following functions are used to select the intrinsic object to
    save memory */
 JS_EXTERN JSContext *JS_NewContextRaw(JSRuntime *rt);
