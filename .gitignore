@@ -7,3 +7,5 @@ unicode/
 test262_*.txt
 .idea
 cmake-*
+.vs/
+CMakeUserPresets.json
