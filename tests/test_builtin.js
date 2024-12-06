@@ -1,4 +1,5 @@
-import * as os from "os";
+import * as os from "qjs:os";
+import { assert, assertThrows } from "./assert.js";
 
 // Keep this at the top; it tests source positions.
 function test_exception_source_pos()
@@ -6,21 +7,21 @@ function test_exception_source_pos()
     var e;
 
     try {
-        throw new Error(""); // line 9, column 19
+        throw new Error(""); // line 10, column 15
     } catch(_e) {
         e = _e;
     }
 
-    assert(e.stack.includes("test_builtin.js:9:19"));
+    assert(e.stack.includes("test_builtin.js:10:15"));
 }
 
 // Keep this at the top; it tests source positions.
-function test_function_source_pos() // line 18, column 1
+function test_function_source_pos() // line 19, column 1
 {
-    function inner() {} // line 20, column 5
+    function inner() {} // line 21, column 5
     var f = eval("function f() {} f");
-    assert(`${test_function_source_pos.lineNumber}:${test_function_source_pos.columnNumber}`, "18:1");
-    assert(`${inner.lineNumber}:${inner.columnNumber}`, "20:5");
+    assert(`${test_function_source_pos.lineNumber}:${test_function_source_pos.columnNumber}`, "19:1");
+    assert(`${inner.lineNumber}:${inner.columnNumber}`, "21:5");
     assert(`${f.lineNumber}:${f.columnNumber}`, "1:1");
 }
 
@@ -35,20 +36,20 @@ function test_exception_prepare_stack()
     };
 
     try {
-        throw new Error(""); // line 38, column 19
+        throw new Error(""); // line 39, column 15
     } catch(_e) {
         e = _e;
     }
 
-    assert(e.stack.length === 2);
-    const f = e.stack[0];
-    assert(f.getFunctionName() === 'test_exception_prepare_stack');
-    assert(f.getFileName() === 'tests/test_builtin.js');
-    assert(f.getLineNumber() === 38);
-    assert(f.getColumnNumber() === 19);
-    assert(!f.isNative());
-
     Error.prepareStackTrace = undefined;
+
+    assert(e.stack.length, 2);
+    const f = e.stack[0];
+    assert(f.getFunctionName(), 'test_exception_prepare_stack');
+    assert(f.getFileName().endsWith('test_builtin.js'));
+    assert(f.getLineNumber(), 39);
+    assert(f.getColumnNumber(), 15);
+    assert(!f.isNative());
 }
 
 // Keep this at the top; it tests source positions.
@@ -63,68 +64,53 @@ function test_exception_stack_size_limit()
     };
 
     try {
-        throw new Error(""); // line 66, column 19
+        throw new Error(""); // line 67, column 15
     } catch(_e) {
         e = _e;
     }
 
-    assert(e.stack.length === 1);
-    const f = e.stack[0];
-    assert(f.getFunctionName() === 'test_exception_stack_size_limit');
-    assert(f.getFileName() === 'tests/test_builtin.js');
-    assert(f.getLineNumber() === 66);
-    assert(f.getColumnNumber() === 19);
-    assert(!f.isNative());
-
     Error.stackTraceLimit = 10;
     Error.prepareStackTrace = undefined;
+
+    assert(e.stack.length, 1);
+    const f = e.stack[0];
+    assert(f.getFunctionName(), 'test_exception_stack_size_limit');
+    assert(f.getFileName().endsWith('test_builtin.js'));
+    assert(f.getLineNumber(), 67);
+    assert(f.getColumnNumber(), 15);
+    assert(!f.isNative());
 }
 
-function assert(actual, expected, message) {
-    if (arguments.length == 1)
-        expected = true;
-
-    if (typeof actual === typeof expected) {
-        if (actual === expected) {
-            if (actual !== 0 || (1 / actual) === (1 / expected))
-                return;
-        }
-        if (typeof actual === 'number') {
-            if (isNaN(actual) && isNaN(expected))
-                return true;
-        }
-        if (typeof actual === 'object') {
-            if (actual !== null && expected !== null
-            &&  actual.constructor === expected.constructor
-            &&  actual.toString() === expected.toString())
-                return;
-        }
-    }
-    throw Error("assertion failed: got |" + actual + "|" +
-                ", expected |" + expected + "|" +
-                (message ? " (" + message + ")" : ""));
-}
-
-function assert_throws(expected_error, func)
+function test_exception_capture_stack_trace()
 {
-    var err = false;
-    try {
-        func();
-    } catch(e) {
-        err = true;
-        if (!(e instanceof expected_error)) {
-            throw Error("unexpected exception type");
-        }
-    }
-    if (!err) {
-        throw Error("expected exception");
-    }
+  var o = {};
+
+  assertThrows(TypeError, (function() {
+      Error.captureStackTrace();
+  }));
+
+  Error.captureStackTrace(o);
+
+  assert(typeof o.stack === 'string');
+  assert(o.stack.includes('test_exception_capture_stack_trace'));
 }
 
-// load more elaborate version of assert if available
-try { __loadScript("test_assert.js"); } catch(e) {}
+function test_exception_capture_stack_trace_filter()
+{
+  var o = {};
+  const fun1 = () => { fun2(); };
+  const fun2 = () => { fun3(); };
+  const fun3 = () => { log_stack(); };
+  function log_stack() {
+      Error.captureStackTrace(o, fun3);
+  }
+  fun1();
 
-/*----------------*/
+  Error.captureStackTrace(o);
+
+  assert(!o.stack.includes('fun3'));
+  assert(!o.stack.includes('log_stack'));
+}
 
 function my_func(a, b)
 {
@@ -155,7 +141,7 @@ function test_function()
     r = (function () { return 1; }).apply(null, undefined);
     assert(r, 1);
 
-    assert_throws(TypeError, (function() {
+    assertThrows(TypeError, (function() {
         Reflect.apply((function () { return 1; }), null, undefined);
     }));
 
@@ -221,7 +207,7 @@ function test()
     assert(typeof a.y, "undefined", "extensible");
     assert(err, true, "extensible");
 
-    assert_throws(TypeError, () => Object.setPrototypeOf(Object.prototype, {}));
+    assertThrows(TypeError, () => Object.setPrototypeOf(Object.prototype, {}));
 }
 
 function test_enum()
@@ -434,17 +420,17 @@ function test_number()
     assert(Number.isNaN(Number("-")));
     assert(Number.isNaN(Number("\x00a")));
 
-    // TODO: Fix rounding errors on Windows/Cygwin.
-    if (['win32', 'cygwin'].includes(os.platform)) {
-        return;
-    }
-
+    assert((1-2**-53).toString(12), "0.bbbbbbbbbbbbbba");
+    assert((1000000000000000128).toString(), "1000000000000000100");
+    assert((1000000000000000128).toFixed(0), "1000000000000000128");
     assert((25).toExponential(0), "3e+1");
     assert((-25).toExponential(0), "-3e+1");
     assert((2.5).toPrecision(1), "3");
     assert((-2.5).toPrecision(1), "-3");
     assert((1.125).toFixed(2), "1.13");
     assert((-1.125).toFixed(2), "-1.13");
+    assert((0.5).toFixed(0), "1");
+    assert((-0.5).toFixed(0), "-1");
 }
 
 function test_eval2()
@@ -516,7 +502,7 @@ function test_eval()
 
 function test_typed_array()
 {
-    var buffer, a, i, str;
+    var buffer, a, i, str, b;
 
     a = new Uint8Array(4);
     assert(a.length, 4);
@@ -551,6 +537,9 @@ function test_typed_array()
     a = new Uint16Array(buffer, 2);
     a[0] = -1;
 
+    a = new Float16Array(buffer, 8, 1);
+    a[0] = 1;
+
     a = new Float32Array(buffer, 8, 1);
     a[0] = 1;
 
@@ -569,6 +558,17 @@ function test_typed_array()
     assert(a.toString(), "1,2,3,4");
     a.set([10, 11], 2);
     assert(a.toString(), "1,2,10,11");
+
+    a = new Uint8Array(buffer, 0, 4);
+    a.constructor = {
+      [Symbol.species]: function (len) {
+        return new Uint8Array(buffer, 1, len);
+      },
+    };
+    b = a.slice();
+    assert(a.buffer, b.buffer);
+    assert(a.toString(), "0,0,0,255");
+    assert(b.toString(), "0,0,255,255");
 }
 
 function test_json()
@@ -697,6 +697,14 @@ function test_date()
     assert(Date.UTC(2017, 9, 22, 18 - 1e10, 10 + 60e10), 1508695800000);
     assert(Date.UTC(2017, 9, 22, 18, 10 - 1e10, 11 + 60e10), 1508695811000);
     assert(Date.UTC(2017, 9, 22, 18, 10, 11 - 1e12, 91 + 1000e12), 1508695811091);
+    assert(new Date("2024 Apr 7 1:00 AM").toLocaleString(), "04/07/2024, 01:00:00 AM");
+    assert(new Date("2024 Apr 7 2:00 AM").toLocaleString(), "04/07/2024, 02:00:00 AM");
+    assert(new Date("2024 Apr 7 11:00 AM").toLocaleString(), "04/07/2024, 11:00:00 AM");
+    assert(new Date("2024 Apr 7 12:00 AM").toLocaleString(), "04/07/2024, 12:00:00 AM");
+    assert(new Date("2024 Apr 7 1:00 PM").toLocaleString(), "04/07/2024, 01:00:00 PM");
+    assert(new Date("2024 Apr 7 2:00 PM").toLocaleString(), "04/07/2024, 02:00:00 PM");
+    assert(new Date("2024 Apr 7 11:00 PM").toLocaleString(), "04/07/2024, 11:00:00 PM");
+    assert(new Date("2024 Apr 7 12:00 PM").toLocaleString(), "04/07/2024, 12:00:00 PM");
 }
 
 function test_regexp()
@@ -749,6 +757,20 @@ function test_regexp()
 
     eval("/[\\-]/");
     eval("/[\\-]/u");
+
+    /* test zero length matches */
+    a = /()*?a/.exec(",");
+    assert(a, null);
+    a = /(?:(?=(abc)))a/.exec("abc");
+    assert(a, ["a", "abc"]);
+    a = /(?:(?=(abc)))?a/.exec("abc");
+    assert(a, ["a", undefined]);
+    a = /(?:(?=(abc))){0,2}a/.exec("abc");
+    assert(a, ["a", undefined]);
+    a = /(?:|[\w])+([0-9])/.exec("123a23");
+    assert(a, ["123a23", "3"]);
+    a = "ab".split(/(c)*/);
+    assert(a, ["a", undefined, "b"]);
 }
 
 function test_symbol()
@@ -966,6 +988,28 @@ function test_proxy_is_array()
   }
 }
 
+function test_finalization_registry()
+{
+    {
+        let expected = {};
+        let actual;
+        let finrec = new FinalizationRegistry(v => { actual = v });
+        finrec.register({}, expected);
+        queueMicrotask(() => {
+            assert(actual, expected);
+        });
+    }
+    {
+        let expected = 42;
+        let actual;
+        let finrec = new FinalizationRegistry(v => { actual = v });
+        finrec.register({}, expected);
+        queueMicrotask(() => {
+            assert(actual, expected);
+        });
+    }
+}
+
 function test_cur_pc()
 {
     var a = [];
@@ -973,10 +1017,10 @@ function test_cur_pc()
             get: function() { throw Error("a[1]_get"); },
             set: function(x) { throw Error("a[1]_set"); }
             });
-    assert_throws(Error, function() { return a[1]; });
-    assert_throws(Error, function() { a[1] = 1; });
-    assert_throws(Error, function() { return [...a]; });
-    assert_throws(Error, function() { return ({...b} = a); });
+    assertThrows(Error, function() { return a[1]; });
+    assertThrows(Error, function() { a[1] = 1; });
+    assertThrows(Error, function() { return [...a]; });
+    assertThrows(Error, function() { return ({...b} = a); });
 
     var o = {};
     Object.defineProperty(o, 'x', {
@@ -984,34 +1028,34 @@ function test_cur_pc()
             set: function(x) { throw Error("o.x_set"); }
             });
     o.valueOf = function() { throw Error("o.valueOf"); };
-    assert_throws(Error, function() { return +o; });
-    assert_throws(Error, function() { return -o; });
-    assert_throws(Error, function() { return o+1; });
-    assert_throws(Error, function() { return o-1; });
-    assert_throws(Error, function() { return o*1; });
-    assert_throws(Error, function() { return o/1; });
-    assert_throws(Error, function() { return o%1; });
-    assert_throws(Error, function() { return o**1; });
-    assert_throws(Error, function() { return o<<1; });
-    assert_throws(Error, function() { return o>>1; });
-    assert_throws(Error, function() { return o>>>1; });
-    assert_throws(Error, function() { return o&1; });
-    assert_throws(Error, function() { return o|1; });
-    assert_throws(Error, function() { return o^1; });
-    assert_throws(Error, function() { return o<1; });
-    assert_throws(Error, function() { return o==1; });
-    assert_throws(Error, function() { return o++; });
-    assert_throws(Error, function() { return o--; });
-    assert_throws(Error, function() { return ++o; });
-    assert_throws(Error, function() { return --o; });
-    assert_throws(Error, function() { return ~o; });
+    assertThrows(Error, function() { return +o; });
+    assertThrows(Error, function() { return -o; });
+    assertThrows(Error, function() { return o+1; });
+    assertThrows(Error, function() { return o-1; });
+    assertThrows(Error, function() { return o*1; });
+    assertThrows(Error, function() { return o/1; });
+    assertThrows(Error, function() { return o%1; });
+    assertThrows(Error, function() { return o**1; });
+    assertThrows(Error, function() { return o<<1; });
+    assertThrows(Error, function() { return o>>1; });
+    assertThrows(Error, function() { return o>>>1; });
+    assertThrows(Error, function() { return o&1; });
+    assertThrows(Error, function() { return o|1; });
+    assertThrows(Error, function() { return o^1; });
+    assertThrows(Error, function() { return o<1; });
+    assertThrows(Error, function() { return o==1; });
+    assertThrows(Error, function() { return o++; });
+    assertThrows(Error, function() { return o--; });
+    assertThrows(Error, function() { return ++o; });
+    assertThrows(Error, function() { return --o; });
+    assertThrows(Error, function() { return ~o; });
 
     Object.defineProperty(globalThis, 'xxx', {
             get: function() { throw Error("xxx_get"); },
             set: function(x) { throw Error("xxx_set"); }
             });
-    assert_throws(Error, function() { return xxx; });
-    assert_throws(Error, function() { xxx = 1; });
+    assertThrows(Error, function() { return xxx; });
+    assertThrows(Error, function() { xxx = 1; });
 }
 
 test();
@@ -1033,8 +1077,11 @@ test_weak_set();
 test_generator();
 test_proxy_iter();
 test_proxy_is_array();
+test_finalization_registry();
 test_exception_source_pos();
 test_function_source_pos();
 test_exception_prepare_stack();
 test_exception_stack_size_limit();
+test_exception_capture_stack_trace();
+test_exception_capture_stack_trace_filter();
 test_cur_pc();
