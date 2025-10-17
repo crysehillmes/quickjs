@@ -141,9 +141,11 @@ endif()
 # QJS_ENABLE_MSAN only works with clang at the time of writing; also not checked
 # for the same reason
 xoption(QJS_BUILD_EXAMPLES "Build examples" OFF)
+xoption(QJS_BUILD_CLI "Build the qjs executable" OFF)
 xoption(QJS_BUILD_CLI_STATIC "Build a static qjs executable" OFF)
 xoption(QJS_BUILD_CLI_WITH_MIMALLOC "Build the qjs executable with mimalloc" OFF)
 xoption(QJS_BUILD_CLI_WITH_STATIC_MIMALLOC "Build the qjs executable with mimalloc (statically linked)" OFF)
+xoption(QJS_BUILD_MISC_EXECUTABLE "Build miscellaneous executables (test262 runner, api-test, unicode_gen, function_source)" OFF)
 xoption(QJS_DISABLE_PARSER "Disable JS source code parser" OFF)
 xoption(QJS_ENABLE_ASAN "Enable AddressSanitizer (ASan)" OFF)
 xoption(QJS_ENABLE_MSAN "Enable MemorySanitizer (MSan)" OFF)
@@ -294,7 +296,7 @@ target_link_libraries(qjsc qjs)
 
 # QuickJS CLI
 #
-
+if(QJS_BUILD_CLI)
 add_executable(qjs_exe
     gen/repl.c
     gen/standalone.c
@@ -319,11 +321,12 @@ if(QJS_BUILD_CLI_WITH_MIMALLOC OR QJS_BUILD_CLI_WITH_STATIC_MIMALLOC)
         target_link_libraries(qjs_exe mimalloc)
     endif()
 endif()
+endif()
 
 # Test262 runner
 #
 
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND QJS_BUILD_MISC_EXECUTABLE)
     add_executable(run-test262
         run-test262.c
     )
@@ -334,16 +337,17 @@ endif()
 
 # Interrupt test
 #
-
+if(QJS_BUILD_MISC_EXECUTABLE)
 add_executable(api-test
     api-test.c
 )
 target_compile_definitions(api-test PRIVATE ${qjs_defines})
 target_link_libraries(api-test qjs)
+endif()
 
 # Unicode generator
 #
-
+if(QJS_BUILD_MISC_EXECUTABLE)
 add_executable(unicode_gen EXCLUDE_FROM_ALL
     cutils.c
     libunicode.c
@@ -358,6 +362,7 @@ add_qjs_libc_if_needed(function_source)
 target_include_directories(function_source PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(function_source PRIVATE ${qjs_defines})
 target_link_libraries(function_source qjs)
+endif()
 
 # Examples
 #
@@ -432,7 +437,9 @@ if(NOT IOS)
     if(QJS_BUILD_LIBC)
         install(FILES quickjs-libc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     endif()
+    if (QJS_BUILD_MISC_EXECUTABLE)
     install(TARGETS qjs_exe RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
     install(TARGETS qjsc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(TARGETS qjs EXPORT qjsConfig
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
