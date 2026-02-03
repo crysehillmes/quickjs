@@ -1,7 +1,7 @@
 project(
   'quickjs-ng',
   'c',
-  version: '0.10.1',
+  version: '0.11.0',
   default_options: [
     'c_std=gnu11,c11',
     'warning_level=3',
@@ -33,9 +33,11 @@ qjs_gcc_warning_args = [
   '-Wno-array-bounds',
   '-Wno-format-truncation',
 ]
-qjs_gcc_args = [
-  '-funsigned-char',
-]
+qjs_gcc_args = []
+
+if host_system != 'sunos'
+  qjs_gcc_args += '-funsigned-char'
+endif
 
 if host_system == 'darwin'
   # https://github.com/quickjs-ng/quickjs/issues/453
